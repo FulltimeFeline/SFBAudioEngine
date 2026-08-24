@@ -32,7 +32,6 @@ let package = Package(
         .package(url: "https://github.com/sbooth/CXXUnfairLock", .upToNextMinor(from: "0.3.1")),
 
         // Standalone dependencies from source
-        .package(url: "https://github.com/sbooth/CDUMB", from: "2.0.3"),
         .package(url: "https://github.com/sbooth/CXXMonkeysAudio", from: "12.13.0"),
         .package(url: "https://github.com/sbooth/CXXTagLib", from: "2.3.0"),
 
@@ -51,13 +50,8 @@ let package = Package(
         .package(url: "https://github.com/sbooth/CSpeex", from: "1.2.1"),
 
         // LGPL bits
-        .package(url: "https://github.com/sbooth/lame-binary-xcframework", .upToNextMinor(from: "0.1.2")),
         // Technically only the musepack *encoder* is LGPL'd but for now the decoder and encoder are packaged together
-        .package(url: "https://github.com/sbooth/mpc-binary-xcframework", .upToNextMinor(from: "0.1.2")),
-        .package(url: "https://github.com/sbooth/mpg123-binary-xcframework", .upToNextMinor(from: "0.3.1")),
         // sndfile-binary-xcframework requires ogg-binary-xcframework, flac-binary-xcframework, opus-binary-xcframework, and vorbis-binary-xcframework
-        .package(url: "https://github.com/sbooth/sndfile-binary-xcframework", .upToNextMinor(from: "0.1.2")),
-        .package(url: "https://github.com/sbooth/tta-cpp-binary-xcframework", .upToNextMinor(from: "0.1.2")),
     ],
     targets: [
         .target(
@@ -70,7 +64,6 @@ let package = Package(
                 .product(name: "CXXQueue", package: "CXXQueue"),
                 .product(name: "CXXUnfairLock", package: "CXXUnfairLock"),
                 // Standalone dependencies
-                .product(name: "dumb", package: "CDUMB"),
                 .product(name: "MAC", package: "CXXMonkeysAudio"),
                 .product(name: "taglib", package: "CXXTagLib"),
                 .product(name: "wavpack", package: "wavpack-binary-xcframework"),
@@ -81,11 +74,6 @@ let package = Package(
                 .product(name: "vorbis", package: "vorbis-binary-xcframework"),
                 .product(name: "speex", package: "CSpeex"),
                 // LGPL bits
-                .product(name: "lame", package: "lame-binary-xcframework"),
-                .product(name: "mpc", package: "mpc-binary-xcframework"),
-                .product(name: "mpg123", package: "mpg123-binary-xcframework"),
-                .product(name: "sndfile", package: "sndfile-binary-xcframework"),
-                .product(name: "tta-cpp", package: "tta-cpp-binary-xcframework"),
             ],
             cSettings: [
                 .headerSearchPath("include/SFBAudioEngine"),
