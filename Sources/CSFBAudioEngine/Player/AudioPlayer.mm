@@ -32,8 +32,13 @@ namespace {
 
 // MARK: - Constants
 
-/// The default audio ring buffer capacity in frames
-constexpr std::size_t audioBufferCapacity = 16384;
+/// The default audio ring buffer capacity in frames — ~3 seconds at 44.1 kHz
+/// (was 16384, ~370 ms). The larger decode-ahead cushion keeps the render fed
+/// when the decode thread is briefly starved by a main-thread burst: opening a
+/// window or fast UI navigation can hog the CPU and the allocator for a few
+/// hundred milliseconds, which the smaller buffer couldn't ride out, producing
+/// an audible stutter.
+constexpr std::size_t audioBufferCapacity = 131072;
 /// The minimum number of frames to write to the audio ring buffer
 constexpr AVAudioFrameCount ringBufferChunkSize = 2048;
 
