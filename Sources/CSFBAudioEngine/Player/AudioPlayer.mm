@@ -2492,7 +2492,19 @@ void sfb::AudioPlayer::handleAudioEngineConfigurationChange(AVAudioEngine *engin
         // once the device settles, which leaves the mixer → output connection at a
         // stale format and the engine rendering into silence. Defer instead: re-run
         // this handler shortly, by which time the format reads real again.
+        // Bounded: an engine bound to a nonexistent device (e.g. following the
+        // default while this process holds another device in hog mode) reports
+        // an invalid format indefinitely — without a cap the deferral below
+        // would retry forever at ~7 Hz. Guarded by engineMutex_, reset the
+        // moment a valid format comes through.
+        static int invalidFormatDeferrals = 0;
         if (outputNodeOutputFormat.sampleRate == 0 || outputNodeOutputFormat.channelCount == 0) {
+            if (++invalidFormatDeferrals > 40) {
+                os_log_error(log_, "Giving up on configuration change; output format still invalid after %d deferrals",
+                             invalidFormatDeferrals - 1);
+                invalidFormatDeferrals = 0;
+                return;
+            }
             os_log_info(log_, "Configuration change with transient invalid output format %{public}@; deferring rebuild",
                         stringDescribingAVAudioFormat(outputNodeOutputFormat));
             lock.unlock();
@@ -2504,6 +2516,7 @@ void sfb::AudioPlayer::handleAudioEngineConfigurationChange(AVAudioEngine *engin
                            });
             return;
         }
+        invalidFormatDeferrals = 0;
 
         // The output node's output format tracks the hardware sample rate and channel count
         // To avoid format conversion in both the source-mixer and mixer-output connections,
