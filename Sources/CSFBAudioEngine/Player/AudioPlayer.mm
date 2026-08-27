@@ -2487,12 +2487,21 @@ void sfb::AudioPlayer::handleAudioEngineConfigurationChange(AVAudioEngine *engin
         // transiently invalid (0 Hz, 0 channels). It never matches the mixer, so
         // without this guard the mismatch branch below reconnects with that invalid
         // format and -[AVAudioEngine connect:to:format:] raises
-        // IsFormatSampleRateAndChannelCountValid, terminating the process. Skip the
-        // rebuild instead: when the device settles, AVAudioEngine posts another
-        // configuration change carrying a real format, and the reconnect happens then.
+        // IsFormatSampleRateAndChannelCountValid, terminating the process. And the
+        // rebuild can't simply be dropped: no follow-up notification is guaranteed
+        // once the device settles, which leaves the mixer → output connection at a
+        // stale format and the engine rendering into silence. Defer instead: re-run
+        // this handler shortly, by which time the format reads real again.
         if (outputNodeOutputFormat.sampleRate == 0 || outputNodeOutputFormat.channelCount == 0) {
-            os_log_info(log_, "Ignoring configuration change with transient invalid output format %{public}@",
+            os_log_info(log_, "Configuration change with transient invalid output format %{public}@; deferring rebuild",
                         stringDescribingAVAudioFormat(outputNodeOutputFormat));
+            lock.unlock();
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, static_cast<int64_t>(150 * NSEC_PER_MSEC)),
+                           dispatch_get_main_queue(), ^{
+                               // Only `this` is captured — same raw-pointer lifetime
+                               // contract as the notification observer that got us here.
+                               this->handleAudioEngineConfigurationChange(this->engine_, nil);
+                           });
             return;
         }
 
