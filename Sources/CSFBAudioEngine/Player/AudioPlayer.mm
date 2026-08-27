@@ -2482,6 +2482,20 @@ void sfb::AudioPlayer::handleAudioEngineConfigurationChange(AVAudioEngine *engin
         AVAudioFormat *outputNodeOutputFormat = [outputNode outputFormatForBus:0];
         AVAudioFormat *mixerNodeOutputFormat = [mixerNode outputFormatForBus:0];
 
+        // While the device's ownership or format is mid-transition — hog mode being
+        // taken or released is the reproducible case — the output node's format is
+        // transiently invalid (0 Hz, 0 channels). It never matches the mixer, so
+        // without this guard the mismatch branch below reconnects with that invalid
+        // format and -[AVAudioEngine connect:to:format:] raises
+        // IsFormatSampleRateAndChannelCountValid, terminating the process. Skip the
+        // rebuild instead: when the device settles, AVAudioEngine posts another
+        // configuration change carrying a real format, and the reconnect happens then.
+        if (outputNodeOutputFormat.sampleRate == 0 || outputNodeOutputFormat.channelCount == 0) {
+            os_log_info(log_, "Ignoring configuration change with transient invalid output format %{public}@",
+                        stringDescribingAVAudioFormat(outputNodeOutputFormat));
+            return;
+        }
+
         // The output node's output format tracks the hardware sample rate and channel count
         // To avoid format conversion in both the source-mixer and mixer-output connections,
         // set the format for the mixer-output connection to the output node's output format
